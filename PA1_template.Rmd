@@ -7,9 +7,21 @@ output:
 
 
 
+
 ## Loading and preprocessing the data
 
 Show any code that is needed to
+
+```{r}
+library(tidyverse)
+df_columns = cols(
+  steps = col_integer(),
+  date = col_date(format = ""),
+  interval = col_integer()
+)
+df <- read_csv("activity.csv", col_types = df_columns)
+```
+
 
     Load the data (i.e. read.csv())
     Process/transform the data (if necessary) into a format suitable for your analysis
@@ -17,27 +29,63 @@ Show any code that is needed to
 
 ## What is mean total number of steps taken per day?
 
-For this part of the assignment, you can ignore the missing values in the dataset.
+The number of steps per day can be found by grouping by day and summing:
+```{r steps_per_day}
+steps_by_day <- df %>% group_by(date) %>% summarise(total_steps = sum(steps))
+```
 
-    Calculate the total number of steps taken per day
-    If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
-    Calculate and report the mean and median of the total number of steps taken per day
+```{r histogram_of_steps_by_day}
+ggplot(data = steps_by_day) + geom_histogram(mapping = aes(x=total_steps))
+```
 
+The mean and median daily steps can be calculated from the same frame:
+```{r calculuate_daily_steps_stats}
+mean_daily_steps <- mean(steps_by_day, na.rm = TRUE)
+median_daily_steps <- median(steps_by_day, na.rm = TRUE)
+```
+The mean number of steps is `r mean_daily_steps` and the median is `r median_daily_steps`. 
 
 
 ## What is the average daily activity pattern?
 
-    Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
-    Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+interval_steps <- df %>% group_by(interval) %>% summarise(mean_steps = mean(steps, na.rm = TRUE))
+```
 
+```{r}
+ggplot(interval_steps) + geom_line(mapping = aes(x=interval, y=mean_steps))
+```
+
+```{r max_interval}
+interval_with_most_steps <- interval_steps$interval[which.max(interval_steps$mean_steps)]
+```
+The interval that has the most steps (on average) is `r interval_with_most_steps`.
 
 ## Imputing missing values
 
-Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+The total number of NA rows in the set can be found from
+```{r all_na_rows}
+NA_rows <- sum(is.na(df$steps))
+NA_rows
+```
+```{r replace_missing_intervals_with_interval_means}
+df_mod <- df %>% group_by(interval) %>% mutate(steps = ifelse(is.na(steps), mean(steps, na.rm = TRUE), steps))
+```
 
-    Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
-    Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
-    Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+steps_by_day_mod <- df_mod %>% group_by(date) %>% summarise(total_steps = sum(steps))
+```
+
+
+```{r}
+ggplot(steps_by_day_mod) + geom_histogram(mapping = aes(x=total_steps))
+```
+
+```{r}
+
+```
+
+
     Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
 
